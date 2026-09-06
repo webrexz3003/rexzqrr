@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SnapQR - Premium Image to QR Converter</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --secondary: #8b5cf6;
+            --accent: #06b6d4;
+            --success: #10b981;
+            --danger: #ef4444;
+            --dark: #0f172a;
+            --dark-light: #1e293b;
+            --gray: #64748b;
+            --gray-light: #94a3b8;
+            --surface: #ffffff;
+            --surface-dark: #f8fafc;
+            --border: #e2e8f0;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+            --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+            --shadow-xl: 0 20px 25px rgba(0,0,0,0.15);
+            --shadow-2xl: 0 25px 50px rgba(0,0,0,0.25);
+            --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            --gradient-animated: linear-gradient(270deg, #6366f1, #8b5cf6, #06b6d4, #6366f1);
+            --gradient-animated-size: 400% 400%;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --radius-2xl: 24px;
+            --radius-full: 9999px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--dark);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            inset: 0;
+            background: var(--dark);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+
+        .loading-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .loading-profile {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            overflow: hidden;
+            margin-bottom: 20px;
+            border: 3px solid var(--primary);
+            animation: loadingPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes loadingPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7); }
+            50% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(99, 102, 241, 0); }
+        }
+
+        .loading-profile img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .loading-title {
+            font-size: 28px;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .loading-subtitle {
+            font-size: 14px;
+            color: var(--gray-light);
+            margin-bottom: 30px;
+        }
+
+        .loading-bar {
+            width: 200px;
+            height: 3px;
+            background: rgba(255,255,255,0.1);
+            border-radius: var(--radius-full);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .loading-bar-fill {
+            height: 100%;
+            background: var(--gradient-animated);
+            background-size: var(--gradient-animated-size);
+            animation: gradientShift 2s ease infinite, loadingFill 2s ease-in-out infinite;
+            border-radius: var(--radius-full);
+            width: 0%;
+        }
+
+        @keyframes loadingFill {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        /* Tutorial Overlay */
+        .tutorial-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 9998;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .tutorial-overlay.active {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .tutorial-card {
+            background: white;
+            border-radius: var(--radius-2xl);
+            max-width: 400px;
+            width: 100%;
+            overflow: hidden;
+            animation: slideUp 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .tutorial-header {
+            padding: 24px;
+            text-align: center;
+            background: var(--gradient-primary);
+            color: white;
+        }
+
+        .tutorial-profile {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            overflow: hidden;
+            margin: 0 auto 12px;
+            border: 3px solid white;
+        }
+
+        .tutorial-profile img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .tutorial-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .tutorial-subtitle {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .tutorial-steps {
+            padding: 24px;
+        }
+
+        .tutorial-step {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .tutorial-step:last-child {
+            margin-bottom: 0;
+        }
+
+        .step-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 4px;
+        }
+
+        .step-description {
+            font-size: 13px;
+            color: var(--gray);
+            line-height: 1.5;
+        }
+
+        .tutorial-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border);
+        }
+
+        .tutorial-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--gradient-primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tutorial-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Background Elements */
+        .bg-orbs {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.3;
+            animation: orbFloat 20s infinite;
+        }
+
+        .orb-1 {
+            width: 300px;
+            height: 300px;
+            background: #6366f1;
+            top: -100px;
+            left: -100px;
+        }
+
+        .orb-2 {
+            width: 400px;
+            height: 400px;
+            background: #8b5cf6;
+            bottom: -200px;
+            right: -100px;
+            animation-delay: -5s;
+        }
+
+        .orb-3 {
+            width: 200px;
+            height: 200px;
+            background: #06b6d4;
+            top: 50%;
+            left: 50%;
+            animation-delay: -10s;
+        }
+
+        @keyframes orbFloat {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(50px, -50px) scale(1.2); }
+            50% { transform: translate(-30px, 30px) scale(0.8); }
+            75% { transform: translate(-50px, -30px) scale(1.1); }
+        }
+
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            animation: gridMove 20s linear infinite;
+        }
+
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(40px, 40px); }
+        }
+
+        /* Main Container */
+        .app-container {
+            position: relative;
+            z-index: 2;
+            max-width: 440px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            animation: headerIn 1s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        @keyframes headerIn {
+            0% { opacity: 0; transform: translateY(-60px) scale(0.8); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .profile-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .profile-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 3px solid var(--primary);
+            position: relative;
+            animation: avatarPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes avatarPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7); }
+            50% { box-shadow: 0 0 0 15px rgba(99, 102, 241, 0); }
+        }
+
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .profile-info {
+            text-align: left;
+        }
+
+        .profile-name {
+            font-size: 20px;
+            font-weight: 800;
+            background: var(--gradient-animated);
+            background-size: var(--gradient-animated-size);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 4s ease infinite;
+            line-height: 1.2;
+        }
+
+        .profile-username {
+            font-size: 13px;
+            color: var(--gray-light);
+            font-weight: 500;
+        }
+
+        .header-description {
+            color: var(--gray);
+            font-size: 15px;
+            font-weight: 400;
+            line-height: 1.6;
+        }
+
+        /* Main Card */
+        .main-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: var(--radius-2xl);
+            padding: 28px 24px;
+            box-shadow: var(--shadow-2xl);
+            animation: cardIn 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.3s both;
+            position: relative;
+            overflow: hidden;
+        }
+
+        @keyframes cardIn {
+            0% { opacity: 0; transform: translateY(60px) scale(0.9); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .main-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-animated);
+            background-size: var(--gradient-animated-size);
+            animation: gradientShift 4s ease infinite;
+        }
+
+        /* Upload Area */
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            border-radius: var(--radius-xl);
+            padding: 40px 24px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            background: var(--surface-dark);
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .upload-area::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: var(--gradient-primary);
+            transform: translate(-50%, -50%);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+        }
+
+        .upload-area:active::before,
+        .upload-area.dragover::before {
+            width: 500px;
+            height: 500px;
+            opacity: 0.08;
+        }
+
+        .upload-area:active,
+        .upload-area.dragover {
+            border-color: var(--primary);
+            transform: scale(0.98);
+        }
+
+        .upload-icon-wrapper {
+            width: 72px;
+            height: 72px;
+            margin: 0 auto 20px;
+            background: var(--gradient-primary);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            animation: iconFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes iconFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .upload-icon-wrapper svg {
+            width: 32px;
+            height: 32px;
+            color: white;
+        }
+
+        .upload-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 8px;
+        }
+
+        .upload-subtitle {
+            font-size: 13px;
+            color: var(--gray);
+        }
+
+        /* Rest of styles... */
+        .preview-section { display: none; margin-top: 24px; }
+        .preview-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .preview-label { font-size: 12px; font-weight: 700; color: var(--gray); text-transform: uppercase; }
+        .remove-btn { background: none; border: none; color: var(--gray); cursor: pointer; padding: 8px; font-size: 13px; }
+        .preview-image-wrapper { position: relative; border-radius: var(--radius-lg); overflow: hidden; }
+        .preview-image { width: 100%; height: 200px; object-fit: cover; display: block; }
+        .preview-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.7), transparent); display: flex; align-items: flex-end; padding: 16px; }
+        .preview-file-info { color: white; font-size: 13px; }
+        
+        .action-btn {
+            width: 100%;
+            padding: 16px;
+            background: var(--gradient-animated);
+            background-size: var(--gradient-animated-size);
+            animation: gradientShift 4s ease infinite;
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 24px;
+            display: none;
+        }
+
+        .loading-indicator { display: none; text-align: center; padding: 24px 0; margin-top: 24px; }
+        .spinner-container { position: relative; width: 60px; height: 60px; margin: 0 auto 16px; }
+        .spinner { position: absolute; inset: 0; border: 3px solid transparent; border-radius: 50%; animation: spinnerRotate 1.5s linear infinite; }
+        .spinner:nth-child(1) { border-top-color: var(--primary); }
+        .spinner:nth-child(2) { border-right-color: var(--secondary); animation-duration: 2s; animation-direction: reverse; }
+        .spinner:nth-child(3) { border-bottom-color: var(--accent); animation-duration: 2.5s; }
+        @keyframes spinnerRotate { to { transform: rotate(360deg); } }
+        .loading-text { font-size: 14px; color: var(--gray); }
+
+        .qr-result { display: none; margin-top: 24px; text-align: center; }
+        .qr-success { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        .qr-success-icon { width: 32px; height: 32px; background: var(--success); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .qr-success-icon svg { width: 18px; height: 18px; color: white; }
+        .qr-title { font-size: 18px; font-weight: 700; color: var(--dark); }
+        #qrcode { display: inline-block; padding: 20px; background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-xl); }
+        .qr-actions { display: flex; gap: 12px; margin-top: 20px; }
+        .qr-action-btn { flex: 1; padding: 12px; border: 2px solid var(--border); border-radius: var(--radius-md); background: white; color: var(--dark); font-size: 13px; font-weight: 600; cursor: pointer; text-align: center; text-decoration: none; }
+        .qr-action-btn.primary { background: var(--primary); border-color: var(--primary); color: white; }
+        .qr-action-btn.danger { border-color: #fecaca; color: var(--danger); }
+
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; display: none; justify-content: center; align-items: center; padding: 20px; backdrop-filter: blur(5px); }
+        .modal-overlay.active { display: flex; }
+        .modal { background: white; border-radius: var(--radius-xl); padding: 24px; max-width: 360px; width: 100%; }
+        .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+        .modal-text { font-size: 14px; color: var(--gray); margin-bottom: 20px; }
+        .modal-actions { display: flex; gap: 12px; }
+        .modal-btn { flex: 1; padding: 12px; border: none; border-radius: var(--radius-md); font-size: 14px; font-weight: 600; cursor: pointer; }
+        .modal-btn.cancel { background: var(--surface-dark); }
+        .modal-btn.confirm { background: var(--danger); color: white; }
+
+        .error-message, .success-message { display: none; padding: 12px; border-radius: var(--radius-md); font-size: 13px; margin-top: 16px; }
+        .error-message { background: #fef2f2; color: var(--danger); }
+        .success-message { background: #f0fdf4; color: var(--success); }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-profile">
+            <img src="rexz.jpg" alt="Rexz3003" onerror="this.src='https://ui-avatars.com/api/?name=Rexz3003&background=6366f1&color=fff'">
+        </div>
+        <div class="loading-title">SnapQR</div>
+        <div class="loading-subtitle">Made by Rexz3003</div>
+        <div class="loading-bar">
+            <div class="loading-bar-fill"></div>
+        </div>
+    </div>
+
+    <!-- Tutorial Overlay -->
+    <div class="tutorial-overlay" id="tutorialOverlay">
+        <div class="tutorial-card">
+            <div class="tutorial-header">
+                <div class="tutorial-profile">
+                    <img src="rexz.jpg" alt="Rexz3003" onerror="this.src='https://ui-avatars.com/api/?name=Rexz3003&background=6366f1&color=fff'">
+                </div>
+                <div class="tutorial-title">Welcome to SnapQR!</div>
+                <div class="tutorial-subtitle">By Rexz3003</div>
+            </div>
+            <div class="tutorial-steps">
+                <div class="tutorial-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <div class="step-title">Upload Image</div>
+                        <div class="step-description">Tap the upload area to select an image from your device</div>
+                    </div>
+                </div>
+                <div class="tutorial-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <div class="step-title">Generate QR Code</div>
+                        <div class="step-description">Click the generate button to create your QR code instantly</div>
+                    </div>
+                </div>
+                <div class="tutorial-step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <div class="step-title">Scan & Share</div>
+                        <div class="step-description">Share the QR code with anyone to let them view your image</div>
+                    </div>
+                </div>
+            </div>
+            <div class="tutorial-footer">
+                <button class="tutorial-btn" id="tutorialBtn">Get Started</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Background Elements -->
+    <div class="bg-orbs">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+    <div class="bg-grid"></div>
+
+    <!-- Main App -->
+    <div class="app-container">
+        <div class="header">
+            <div class="profile-container">
+                <div class="profile-avatar">
+                    <img src="rexz.jpg" alt="Rexz3003" onerror="this.src='https://ui-avatars.com/api/?name=Rexz3003&background=6366f1&color=fff'">
+                </div>
+                <div class="profile-info">
+                    <div class="profile-name">Rexz3003</div>
+                    <div class="profile-username">@rexz3003</div>
+                </div>
+            </div>
+            <p class="header-description">
+                Transform your images into scannable QR codes
+            </p>
+        </div>
+
+        <div class="main-card">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon-wrapper">
+                    <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M16 20V4M16 4L10 10M16 4L22 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M4 20v4a4 4 0 004 4h16a4 4 0 004-4v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="upload-title">Upload Image</div>
+                <div class="upload-subtitle">Tap to browse or drop file here</div>
+                <input type="file" id="fileInput" accept="image/*">
+            </div>
+
+            <div class="error-message" id="errorMessage"></div>
+            <div class="success-message" id="successMessage"></div>
+
+            <div class="preview-section" id="previewSection">
+                <div class="preview-header">
+                    <span class="preview-label">Preview</span>
+                    <button class="remove-btn" id="removeBtn">✕ Remove</button>
+                </div>
+                <div class="preview-image-wrapper">
+                    <img class="preview-image" id="imagePreview" alt="Preview">
+                    <div class="preview-overlay">
+                        <div class="preview-file-info">
+                            <div id="fileName">image.jpg</div>
+                            <div id="fileSize">2.5 MB</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="action-btn" id="convertBtn">Generate QR Code</button>
+
+            <div class="loading-indicator" id="loadingIndicator">
+                <div class="spinner-container">
+                    <div class="spinner"></div>
+                    <div class="spinner"></div>
+                    <div class="spinner"></div>
+                </div>
+                <div class="loading-text">Uploading to server...</div>
+            </div>
+
+            <div class="qr-result" id="qrResult">
+                <div class="qr-success">
+                    <div class="qr-success-icon">
+                        <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M16.6667 5L7.5 14.1667L3.33333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <span class="qr-title">QR Code Generated</span>
+                </div>
+                <div id="qrcode"></div>
+                <div class="qr-actions">
+                    <a href="#" target="_blank" class="qr-action-btn primary" id="viewImageBtn">View Image</a>
+                    <button class="qr-action-btn danger" id="deleteFromServerBtn">Delete</button>
+                </div>
+                <button class="action-btn" id="resetBtn" style="display: block; margin-top: 16px; background: var(--surface-dark); color: var(--dark);">Upload Another Image</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Modal -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal">
+            <div class="modal-title">Delete Image?</div>
+            <div class="modal-text">This will permanently remove the image from the server.</div>
+            <div class="modal-actions">
+                <button class="modal-btn cancel" id="cancelDelete">Cancel</button>
+                <button class="modal-btn confirm" id="confirmDelete">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Loading Screen
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('loadingScreen').classList.add('hidden');
+                document.getElementById('tutorialOverlay').classList.add('active');
+            }, 2500);
+        });
+
+        // Tutorial
+        document.getElementById('tutorialBtn').addEventListener('click', () => {
+            document.getElementById('tutorialOverlay').classList.remove('active');
+        });
+
+        // Rest of JavaScript
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const previewSection = document.getElementById('previewSection');
+        const imagePreview = document.getElementById('imagePreview');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const convertBtn = document.getElementById('convertBtn');
+        const qrResult = document.getElementById('qrResult');
+        const qrcode = document.getElementById('qrcode');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const resetBtn = document.getElementById('resetBtn');
+        const removeBtn = document.getElementById('removeBtn');
+        const viewImageBtn = document.getElementById('viewImageBtn');
+        const deleteFromServerBtn = document.getElementById('deleteFromServerBtn');
+        const deleteModal = document.getElementById('deleteModal');
+        const cancelDelete = document.getElementById('cancelDelete');
+        const confirmDelete = document.getElementById('confirmDelete');
+
+        const TMPFILES_API = 'https://tmpfiles.org/api/v1/upload';
+        let selectedFile = null;
+        let uploadedImageUrl = null;
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) handleFile(files[0]);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) handleFile(e.target.files[0]);
+        });
+
+        removeBtn.addEventListener('click', resetAll);
+        resetBtn.addEventListener('click', resetAll);
+
+        function resetAll() {
+            selectedFile = null;
+            uploadedImageUrl = null;
+            fileInput.value = '';
+            previewSection.style.display = 'none';
+            convertBtn.style.display = 'none';
+            qrResult.style.display = 'none';
+            qrcode.innerHTML = '';
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+            loadingIndicator.style.display = 'none';
+        }
+
+        function handleFile(file) {
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+            qrResult.style.display = 'none';
+            qrcode.innerHTML = '';
+            uploadedImageUrl = null;
+
+            if (!file.type.startsWith('image/')) {
+                showError('Please select a valid image file');
+                return;
+            }
+
+            if (file.size > 100 * 1024 * 1024) {
+                showError('File size exceeds 100MB limit');
+                return;
+            }
+
+            selectedFile = file;
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imagePreview.src = e.target.result;
+                previewSection.style.display = 'block';
+                convertBtn.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            setTimeout(() => errorMessage.style.display = 'none', 4000);
+        }
+
+        function showSuccess(message) {
+            successMessage.textContent = message;
+            successMessage.style.display = 'block';
+            setTimeout(() => successMessage.style.display = 'none', 4000);
+        }
+
+        convertBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            convertBtn.disabled = true;
+            convertBtn.style.display = 'none';
+            loadingIndicator.style.display = 'block';
+
+            try {
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+
+                const response = await fetch(TMPFILES_API, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error('Upload failed');
+
+                const data = await response.json();
+                
+                if (!data.data || !data.data.url) {
+                    throw new Error('Invalid response');
+                }
+
+                uploadedImageUrl = data.data.url.replace('tmpfiles.org/', 'tmpfiles.org/dl/');
+                
+                setTimeout(() => {
+                    qrcode.innerHTML = '';
+                    new QRCode(qrcode, {
+                        text: uploadedImageUrl,
+                        width: 200,
+                        height: 200,
+                        colorDark: "#0f172a",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.M
+                    });
+                    
+                    viewImageBtn.href = uploadedImageUrl;
+                    loadingIndicator.style.display = 'none';
+                    qrResult.style.display = 'block';
+                    convertBtn.disabled = false;
+                    showSuccess('QR code generated successfully!');
+                }, 500);
+                
+            } catch (error) {
+                loadingIndicator.style.display = 'none';
+                convertBtn.style.display = 'block';
+                convertBtn.disabled = false;
+                showError('Upload failed. Please try again.');
+            }
+        });
+
+        deleteFromServerBtn.addEventListener('click', () => {
+            deleteModal.classList.add('active');
+        });
+
+        cancelDelete.addEventListener('click', () => {
+            deleteModal.classList.remove('active');
+        });
+
+        confirmDelete.addEventListener('click', async () => {
+            deleteModal.classList.remove('active');
+            showSuccess('Image will be deleted from server within 60 minutes.');
+            resetAll();
+        });
+
+        deleteModal.addEventListener('click', (e) => {
+            if (e.target === deleteModal) deleteModal.classList.remove('active');
+        });
+    </script>
+</body>
+</html>
